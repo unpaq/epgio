@@ -15,10 +15,11 @@ open(my $api_key_file, "<", "apikey.conf") or die "Can't open apikey.conf: $!";
 my $api_key = <$api_key_file>;
 chomp($api_key);
 
-my %programs;
-my %programs2;
+#my %programs;
+#my %programs2;
 my $endpoint = "https://api.epg.io/v1";
 my $ua = LWP::UserAgent->new();
+my %ratings;
 
 system("rm output/*");
 
@@ -97,6 +98,12 @@ while (<$in>)
                     if (defined $imdb_id && $imdb_id ne '')
                     {
                         $oneoutput{'imdb_id'} = $imdb_id;
+                        my $rating = imdbRating($p->{series}->{slug});
+                        if ($rating > 0)
+                        {
+                            $oneoutput{'imdb_rating'} = $rating;
+                            say " - Rating: $rating";
+                        }
                     }
 
                     # tvdb_id
@@ -195,10 +202,38 @@ system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync /va
 
 sub imdbRating
 {
-    my($searchGenres, $objectGenres) = @_;
+    my($slug) = @_;
+    my $rating = 0;
+    my $lookup = $ratings{$slug};
 
-#https://api.epg.io/v1/series/5504168163686170e7473306/ratings?api_key=
-
+    if (defined $lookup)
+    {
+        $rating = $lookup;
+    } else {
+        my $url = "$endpoint/series/$slug/ratings.json?api_key=$api_key";
+        say "    URL = $url";
+        my $req = new HTTP::Request GET => $url;
+        my $res = $ua->request($req);
+        if ($res->is_success)
+        {
+            my $json = decode_json( $res->content );
+            my $results = $json->{results};
+            foreach my $r (@$results)
+            {
+                if ($r->{type} eq "imdb")
+                {
+                    if (defined $r->{votes} && $r->{votes} > 1000)
+                    {
+                        $rating = 0+$r->{rating};
+                    }
+                    $ratings{$slug} = $rating;
+                    last;
+                }
+            }
+        }
+    }
+    
+    return $rating;
 }
 
 sub checkGenres
