@@ -14,14 +14,29 @@ use utf8;
 open(my $api_key_file, "<", "apikey.conf") or die "Can't open apikey.conf: $!";
 my $api_key = <$api_key_file>;
 chomp($api_key);
+close $api_key_file;
 
-#my %programs;
-#my %programs2;
 my $endpoint = "https://api.epg.io/v1";
 my $ua = LWP::UserAgent->new();
 my %ratings;
 
 system("rm output/*");
+
+my %cattrans;
+my %channeltrans;
+open(my $cats, "<:encoding(UTF-8)", "category_translation.conf") or die "Can't open category_translation.conf: $!";
+while (<$cats>)
+{
+    if (/^(?!#)T \"(.*)\" \"(.*)\"/)
+    {
+        $cattrans{$1} = $2;
+    }
+    if (/^(?!#)K \"(.*)\" \"(.*)\"/)
+    {
+        $channeltrans{$1} = $2;
+    }
+}
+close $cats;
 
 open(my $in, "<", "channels.conf") or die "Can't open channels.conf: $!";
 
@@ -102,7 +117,6 @@ while (<$in>)
                         if ($rating > 0)
                         {
                             $oneoutput{'imdb_rating'} = $rating;
-                            say " - Rating: $rating";
                         }
                     }
 
@@ -120,19 +134,21 @@ while (<$in>)
                         my $genres = $p->{series}->{genres};
                         $oneoutput{'origGenres'} = \@$genres;
                                                 
-                            if (checkGenres(["News"], \@$genres))
+                            if (checkGenres(["News", "Politics"], \@$genres))
                             {
                                 $finalcat = "Nyheder";
-                            } elsif (checkGenres(["Kids"], \@$genres)) {
+                            } elsif (checkGenres(["Kids", "Animation"], \@$genres)) {
                                 $finalcat = "Børn & Ungdom";
-                            } elsif (checkGenres(["Entertainment", "Lifestyle"], \@$genres)) {
+                            } elsif (checkGenres(["Entertainment", "Lifestyle", "Gameshow"], \@$genres)) {
                                 $finalcat = "Underholdning";
                             } elsif (checkGenres(["Reality"], \@$genres)) {
-                                $finalcat = "Reality";
-                            } elsif (checkGenres(["Mini-Series"], \@$genres)) {
+                                $finalcat = "Reality";     
+                            } elsif (checkGenres(["Mini-Series", "Sitcom"], \@$genres)) {
                                 $finalcat = "Serier";
                             } elsif (checkGenres(["Music", "Musical"], \@$genres)) {
                                 $finalcat = "Musik";
+                            } elsif (checkGenres(["Cultural", "Cooking"], \@$genres)) {
+                                $finalcat = "Kultur";
                             } elsif (checkGenres(["Animals", "Nature", "Home and Garden"], \@$genres)) {
                                 $finalcat = "Natur";
                             } elsif (checkGenres(["History", "Biography", "Documentary"], \@$genres)) {
@@ -140,12 +156,38 @@ while (<$in>)
                             } elsif (checkGenres(["Comedy", "Drama"], \@$genres)) {
                                 $finalcat = "Serier";
                             } else {
-                                #say $p->{name}->{title} . " " . Dumper(\@$genres);
                             }
                     } elsif ($category eq "sports") {
                         $finalcat = "Sport";
                     } elsif ($category eq "movie") {
                         $finalcat = "Film";
+                    }
+                    if ($finalcat eq "")
+                    {
+                        foreach my $key ( keys %cattrans )
+                        {
+                            if (index($p->{name}->{title}, $key) != -1)
+                            {
+                                $finalcat = $cattrans{$key};
+                                last;
+                            }
+                        }
+                    }
+                    if ($finalcat eq "")
+                    {
+                        foreach my $key ( keys %channeltrans )
+                        {
+                            if (index($channel_slug, $key) != -1)
+                            {
+                                $finalcat = $channeltrans{$key};
+                                last;
+                            }
+                        }
+                    }
+                    if ($finalcat eq "")
+                    {
+                        my $genres = $p->{series}->{genres};
+                        say "T: " . $p->{name}->{title} . " -- " . join(", ", @$genres);
                     }
                     my %cathash;
                     my @catarray;
@@ -211,7 +253,6 @@ sub imdbRating
         $rating = $lookup;
     } else {
         my $url = "$endpoint/series/$slug/ratings.json?api_key=$api_key";
-        say "    URL = $url";
         my $req = new HTTP::Request GET => $url;
         my $res = $ua->request($req);
         if ($res->is_success)
