@@ -11,6 +11,14 @@ use 5.10.0;
 use match::simple qw(match);
 use utf8;
 
+my $channel_id = $ARGV[0];
+my $testmode = 0;
+
+if (defined $channel_id)
+{
+    $testmode = 1;
+}
+
 open(my $api_key_file, "<", "apikey.conf") or die "Can't open apikey.conf: $!";
 my $api_key = <$api_key_file>;
 chomp($api_key);
@@ -19,8 +27,6 @@ close $api_key_file;
 my $endpoint = "https://api.epg.io/v1";
 my $ua = LWP::UserAgent->new();
 my %ratings;
-
-system("rm output/*");
 
 my %cattrans;
 my %channeltrans;
@@ -38,17 +44,28 @@ while (<$cats>)
 }
 close $cats;
 
-open(my $in, "<", "channels.conf") or die "Can't open channels.conf: $!";
-
-while (<$in>)
+my $in;
+if ($testmode == 0)
 {
-    if (/^(?!#)(.*) (.*)/)
+    system("rm output/*");
+    open($in, "<", "channels.conf") or die "Can't open channels.conf: $!";
+}
+
+while ($testmode == 1 || <$in>)
+{
+    if ($testmode == 1 || /^(?!#)(.*) (.*)/)
     {
         my $channel_slug;
         my $xmltvid;
 
-        $channel_slug = $1;
-        $xmltvid = $2;
+        if ($testmode == 0)
+        {
+            $channel_slug = $1;
+            $xmltvid = $2;
+        } else {
+            $channel_slug = $channel_id;
+            $xmltvid = "test.test.dk";
+        }
         my $dt = DateTime->now;
 
         say "Fetching $channel_slug ($xmltvid)";
@@ -199,13 +216,15 @@ while (<$in>)
                     
                     if (defined $episode && $episode ne '')
                     {
+                        $episode = $episode-1;
                         my %episodeNum;
                         my $season = $p->{'episode'}->{'season_number'};
                         if (defined $season && $season ne '')
                         {
-                            $episodeNum{'xmltv_ns'} = $season . "." . $episode-1 . ".";
+                            $season = $season-1;
+                            $episodeNum{'xmltv_ns'} = $season . "." . $episode . ".";
                         } else {
-                            $episodeNum{'xmltv_ns'} = "." . $episode-1 . ".";
+                            $episodeNum{'xmltv_ns'} = "." . $episode . ".";
                         }
                         $oneoutput{'episodeNum'} = \%episodeNum;;
                     }
@@ -218,29 +237,39 @@ while (<$in>)
                 my %l2struct;
                 $l2struct{'programme'} = \@pout;
                 $l1struct{'jsontv'} = \%l2struct;
-#                say Dumper(\%l1struct);
 
                 my $json_text = JSON->new->utf8(1)->encode(\%l1struct);
 #                say $json_text;
-                my $jsonoutf = "output/" . $xmltvid . "_" . $dt->ymd . ".js";
-                open(my $out, ">", $jsonoutf) or die "Can't open $jsonoutf: $!";
-                print $out $json_text;
-                close $out;
-                system("gzip -f $jsonoutf"); 
-                system("mv $jsonoutf" . ".gz /var/local/nonametv/json_staging/");
+                if ($testmode == 0)
+                {
+                    my $jsonoutf = "output/" . $xmltvid . "_" . $dt->ymd . ".js";
+                    open(my $out, ">", $jsonoutf) or die "Can't open $jsonoutf: $!";
+                    print $out $json_text;
+                    close $out;
+                    system("gzip -f $jsonoutf"); 
+                    system("mv $jsonoutf" . ".gz /var/local/nonametv/json_staging/");
+                } else {
+                    say Dumper(\%l1struct);                    
+                }
             } else {
                 print STDERR $res->status_line, "\n";
             }
 
             $dt->add( days => 1 );
-#            last;
+        }
+        if ($testmode == 1)
+        {
+            last;
         }
     }
 }
 
-close $in;
+if ($testmode == 0)
+{
+    close $in;
 
-system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync /var/local/nonametv/json_staging/ s3://tvguideplus --delete-removed --acl-public");
+    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync /var/local/nonametv/json_staging/ s3://tvguideplus --delete-removed --acl-public");
+}
 
 sub imdbRating
 {
