@@ -205,11 +205,11 @@ sub handleChannel
 						}
 					}
 				}
-				if ($finalcat eq "")
-				{
-					my $genres = $p->{series}->{genres};
-					say "T: " . $p->{name}->{title} . " -- " . join(", ", @$genres);
-				}
+#				if ($finalcat eq "")
+#				{
+#					my $genres = $p->{series}->{genres};
+#					say "T: " . $p->{name}->{title} . " -- " . join(", ", @$genres);
+#				}
 				my %cathash;
 				my @catarray;
 				push @catarray, $finalcat;
