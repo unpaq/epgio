@@ -12,11 +12,16 @@ use match::simple qw(match);
 use utf8;
 
 my $channel_id = $ARGV[0];
+my $xmlid = $ARGV[1];
 my $testmode = 0;
 
 if (defined $channel_id)
 {
-    $testmode = 1;
+    if (!defined $xmlid)
+    {
+        $testmode = 1;
+        $xmlid = "test.test.dk";
+    }
 }
 
 open(my $api_key_file, "<", "apikey.conf") or die "Can't open apikey.conf: $!";
@@ -47,8 +52,11 @@ close $cats;
 if ($testmode == 0)
 {
     system("rm output/*");
-    open(my $in, "<", "channels.conf") or die "Can't open channels.conf: $!";
+}
 
+if (!defined $channel_id)
+{
+    open(my $in, "<", "channels.conf") or die "Can't open channels.conf: $!";
 	while (<$in>)
 	{
 		if (/^(?!#)(.*) (.*)/)
@@ -56,12 +64,14 @@ if ($testmode == 0)
 			handleChannel($1, $2);
 		}
 	}
-	
 	close $in;
-	
-	system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync /var/local/nonametv/json_staging/ s3://tvguideplus --delete-removed --acl-public");
 } else {
-	handleChannel($channel_id, "test.test.dk");
+	handleChannel($channel_id, $xmlid);
+}
+
+if ($testmode == 0)
+{
+    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync /var/local/nonametv/json_staging/ s3://tvguideplus --delete-removed --acl-public");
 }
 
 # The end
