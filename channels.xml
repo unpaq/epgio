@@ -11211,25 +11211,6 @@
       <updated-at type="dateTime">2015-07-27T05:28:44+02:00</updated-at>
     </channel>
     <channel>
-      <id>5503e2ae636861565cfb0100</id>
-      <name>TV2 Bliss</name>
-      <slug>tv2-bliss</slug>
-      <url>http://epg.io/channel/tv2-bliss</url>
-      <xmltv-id>bliss.tv2.no</xmltv-id>
-      <logo>
-        <original>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/bliss.tv2.no.png</original>
-        <large>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/large_bliss.tv2.no.png</large>
-        <medium>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/medium_bliss.tv2.no.png</medium>
-        <small>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/small_bliss.tv2.no.png</small>
-        <thumb>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/thumb_bliss.tv2.no.png</thumb>
-      </logo>
-      <svg-logo>https://tvimg.net/channel/svg_logo/5503e2ae636861565cfb0100/bliss.tv2.no.svg</svg-logo>
-      <countries type="array">
-        <country>NO</country>
-      </countries>
-      <updated-at type="dateTime">2015-07-27T05:28:45+02:00</updated-at>
-    </channel>
-    <channel>
       <id>5503e2ae636861565cfc0100</id>
       <name>TV2 Charlie</name>
       <slug>tv2-charlie</slug>
@@ -11328,6 +11309,25 @@
         <country>DK</country>
       </countries>
       <updated-at type="dateTime">2015-07-27T05:28:51+02:00</updated-at>
+    </channel>
+    <channel>
+      <id>5503e2ae636861565cfb0100</id>
+      <name>TV2 Livsstil</name>
+      <slug>tv2-livsstil</slug>
+      <url>http://epg.io/channel/tv2-livsstil</url>
+      <xmltv-id>bliss.tv2.no</xmltv-id>
+      <logo>
+        <original>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/bliss.tv2.no.png</original>
+        <large>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/large_bliss.tv2.no.png</large>
+        <medium>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/medium_bliss.tv2.no.png</medium>
+        <small>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/small_bliss.tv2.no.png</small>
+        <thumb>https://tvimg.net/channel/logo/5503e2ae636861565cfb0100/thumb_bliss.tv2.no.png</thumb>
+      </logo>
+      <svg-logo>https://tvimg.net/channel/svg_logo/5503e2ae636861565cfb0100/bliss.tv2.no.svg</svg-logo>
+      <countries type="array">
+        <country>NO</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-07T00:02:19+01:00</updated-at>
     </channel>
     <channel>
       <id>5503e2b2636861565c010200</id>
@@ -13124,25 +13124,6 @@
       <updated-at type="dateTime">2015-07-27T05:30:33+02:00</updated-at>
     </channel>
     <channel>
-      <id>5503e2f3636861565c4c0200</id>
-      <name>Viasat Film Denmark</name>
-      <slug>viasat-film-denmark</slug>
-      <url>http://epg.io/channel/viasat-film-denmark</url>
-      <xmltv-id>film.viasat.dk</xmltv-id>
-      <logo>
-        <original>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/film.viasat.dk.png</original>
-        <large>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/large_film.viasat.dk.png</large>
-        <medium>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/medium_film.viasat.dk.png</medium>
-        <small>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/small_film.viasat.dk.png</small>
-        <thumb>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/thumb_film.viasat.dk.png</thumb>
-      </logo>
-      <svg-logo>https://tvimg.net/channel/svg_logo/5503e2f3636861565c4c0200/film.viasat.dk.svg</svg-logo>
-      <countries type="array">
-        <country>DK</country>
-      </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:35+02:00</updated-at>
-    </channel>
-    <channel>
       <id>5503e2f4636861565c4e0200</id>
       <name>Viasat Film Drama Denmark</name>
       <slug>viasat-film-drama-denmark</slug>
@@ -13314,10 +13295,81 @@
       <updated-at type="dateTime">2015-07-27T05:30:39+02:00</updated-at>
     </channel>
     <channel>
+      <id>563d318c273d7d594f000000</id>
+      <name>Viasat Film Hits Denmark</name>
+      <slug>viasat-film-hits-denmark</slug>
+      <url>http://epg.io/channel/viasat-film-hits-denmark</url>
+      <xmltv-id>hits.film.viasat.dk</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>DK</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:46+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d318c273d7d594f000001</id>
+      <name>Viasat Film Hits Finland</name>
+      <slug>viasat-film-hits-finland</slug>
+      <url>http://epg.io/channel/viasat-film-hits-finland</url>
+      <xmltv-id>hits.film.viasat.fi</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>FI</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:47+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d318c273d7d594f000002</id>
+      <name>Viasat Film Hits Norway</name>
+      <slug>viasat-film-hits-norway</slug>
+      <url>http://epg.io/channel/viasat-film-hits-norway</url>
+      <xmltv-id>hits.film.viasat.no</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>NO</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:49+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d318c273d7d594f000003</id>
+      <name>Viasat Film Hits Sweden</name>
+      <slug>viasat-film-hits-sweden</slug>
+      <url>http://epg.io/channel/viasat-film-hits-sweden</url>
+      <xmltv-id>hits.film.viasat.se</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>SE</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:43+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>5503e2f3636861565c4c0200</id>
+      <name>Viasat Film Premiere Denmark</name>
+      <slug>viasat-film-premiere-denmark</slug>
+      <url>http://epg.io/channel/viasat-film-premiere-denmark</url>
+      <xmltv-id>film.viasat.dk</xmltv-id>
+      <logo>
+        <original>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/film.viasat.dk.png</original>
+        <large>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/large_film.viasat.dk.png</large>
+        <medium>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/medium_film.viasat.dk.png</medium>
+        <small>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/small_film.viasat.dk.png</small>
+        <thumb>https://tvimg.net/channel/logo/5503e2f3636861565c4c0200/thumb_film.viasat.dk.png</thumb>
+      </logo>
+      <svg-logo>https://tvimg.net/channel/svg_logo/5503e2f3636861565c4c0200/film.viasat.dk.svg</svg-logo>
+      <countries type="array">
+        <country>DK</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-07T00:02:37+01:00</updated-at>
+    </channel>
+    <channel>
       <id>5503e2fc636861565c560200</id>
-      <name>Viasat Film Finland</name>
-      <slug>viasat-film-finland</slug>
-      <url>http://epg.io/channel/viasat-film-finland</url>
+      <name>Viasat Film Premiere Finland</name>
+      <slug>viasat-film-premiere-finland</slug>
+      <url>http://epg.io/channel/viasat-film-premiere-finland</url>
       <xmltv-id>film.viasat.fi</xmltv-id>
       <logo>
         <original>https://tvimg.net/channel/logo/5503e2fc636861565c560200/film.viasat.fi.png</original>
@@ -13330,13 +13382,13 @@
       <countries type="array">
         <country>FI</country>
       </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:41+02:00</updated-at>
+      <updated-at type="dateTime">2015-11-07T00:02:37+01:00</updated-at>
     </channel>
     <channel>
       <id>5503e2fd636861565c570200</id>
-      <name>Viasat Film HD</name>
-      <slug>viasat-film-hd</slug>
-      <url>http://epg.io/channel/viasat-film-hd</url>
+      <name>Viasat Film Premiere HD</name>
+      <slug>viasat-film-premiere-hd</slug>
+      <url>http://epg.io/channel/viasat-film-premiere-hd</url>
       <xmltv-id>hd.film.viasat.se</xmltv-id>
       <logo>
         <original>https://tvimg.net/channel/logo/5503e2fd636861565c570200/hd.film.viasat.se.png</original>
@@ -13349,13 +13401,13 @@
       <countries type="array">
         <country>SE</country>
       </countries>
-      <updated-at type="dateTime">2015-07-28T01:09:36+02:00</updated-at>
+      <updated-at type="dateTime">2015-11-07T00:02:37+01:00</updated-at>
     </channel>
     <channel>
       <id>5503e2fd636861565c580200</id>
-      <name>Viasat Film Norway</name>
-      <slug>viasat-film-norway</slug>
-      <url>http://epg.io/channel/viasat-film-norway</url>
+      <name>Viasat Film Premiere Norway</name>
+      <slug>viasat-film-premiere-norway</slug>
+      <url>http://epg.io/channel/viasat-film-premiere-norway</url>
       <xmltv-id>film.viasat.no</xmltv-id>
       <logo>
         <original>https://tvimg.net/channel/logo/5503e2fd636861565c580200/film.viasat.no.png</original>
@@ -13368,13 +13420,13 @@
       <countries type="array">
         <country>NO</country>
       </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:42+02:00</updated-at>
+      <updated-at type="dateTime">2015-11-07T00:02:37+01:00</updated-at>
     </channel>
     <channel>
       <id>5503e2e5636861565c3e0200</id>
-      <name>Viasat Film Sweden</name>
-      <slug>viasat-film-sweden</slug>
-      <url>http://epg.io/channel/viasat-film-sweden</url>
+      <name>Viasat Film Premiere Sweden</name>
+      <slug>viasat-film-premiere-sweden</slug>
+      <url>http://epg.io/channel/viasat-film-premiere-sweden</url>
       <xmltv-id>film.viasat.se</xmltv-id>
       <logo>
         <original>https://tvimg.net/channel/logo/5503e2e5636861565c3e0200/film.viasat.se.png</original>
@@ -13387,7 +13439,7 @@
       <countries type="array">
         <country>SE</country>
       </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:44+02:00</updated-at>
+      <updated-at type="dateTime">2015-11-07T00:02:37+01:00</updated-at>
     </channel>
     <channel>
       <id>5503e2fe636861565c590200</id>
@@ -13717,6 +13769,63 @@
       <updated-at type="dateTime">2015-07-28T01:30:46+02:00</updated-at>
     </channel>
     <channel>
+      <id>5503e30f636861565c6a0200</id>
+      <name>Viasat Nature Denmark</name>
+      <slug>viasat-nature-denmark</slug>
+      <url>http://epg.io/channel/viasat-nature-denmark</url>
+      <xmltv-id>nature.viasat.dk</xmltv-id>
+      <logo>
+        <original>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/nature.viasat.dk.png</original>
+        <large>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/large_nature.viasat.dk.png</large>
+        <medium>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/medium_nature.viasat.dk.png</medium>
+        <small>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/small_nature.viasat.dk.png</small>
+        <thumb>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/thumb_nature.viasat.dk.png</thumb>
+      </logo>
+      <svg-logo>https://tvimg.net/channel/svg_logo/5503e30f636861565c6a0200/nature.viasat.dk.svg</svg-logo>
+      <countries type="array">
+        <country>DK</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-07T00:02:41+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>5503e30f636861565c6b0200</id>
+      <name>Viasat Nature Finland</name>
+      <slug>viasat-nature-finland</slug>
+      <url>http://epg.io/channel/viasat-nature-finland</url>
+      <xmltv-id>naturecrime.viasat.fi</xmltv-id>
+      <logo>
+        <original>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/naturecrime.viasat.fi.png</original>
+        <large>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/large_naturecrime.viasat.fi.png</large>
+        <medium>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/medium_naturecrime.viasat.fi.png</medium>
+        <small>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/small_naturecrime.viasat.fi.png</small>
+        <thumb>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/thumb_naturecrime.viasat.fi.png</thumb>
+      </logo>
+      <svg-logo>https://tvimg.net/channel/svg_logo/5503e30f636861565c6b0200/naturecrime.viasat.fi.svg</svg-logo>
+      <countries type="array">
+        <country>FI</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-07T00:02:41+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>5503e310636861565c6c0200</id>
+      <name>Viasat Nature Norway</name>
+      <slug>viasat-nature-norway</slug>
+      <url>http://epg.io/channel/viasat-nature-norway</url>
+      <xmltv-id>nature.viasat.no</xmltv-id>
+      <logo>
+        <original>https://tvimg.net/channel/logo/5503e310636861565c6c0200/nature.viasat.no.png</original>
+        <large>https://tvimg.net/channel/logo/5503e310636861565c6c0200/large_nature.viasat.no.png</large>
+        <medium>https://tvimg.net/channel/logo/5503e310636861565c6c0200/medium_nature.viasat.no.png</medium>
+        <small>https://tvimg.net/channel/logo/5503e310636861565c6c0200/small_nature.viasat.no.png</small>
+        <thumb>https://tvimg.net/channel/logo/5503e310636861565c6c0200/thumb_nature.viasat.no.png</thumb>
+      </logo>
+      <svg-logo>https://tvimg.net/channel/svg_logo/5503e310636861565c6c0200/nature.viasat.no.svg</svg-logo>
+      <countries type="array">
+        <country>NO</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-07T00:02:41+01:00</updated-at>
+    </channel>
+    <channel>
       <id>5521b09863686102820c0000</id>
       <name>Viasat Nature Poland</name>
       <slug>viasat-nature-poland</slug>
@@ -13736,67 +13845,10 @@
       <updated-at type="dateTime">2015-07-29T00:01:37+02:00</updated-at>
     </channel>
     <channel>
-      <id>5503e30f636861565c6a0200</id>
-      <name>Viasat Nature/Crime Denmark</name>
-      <slug>viasat-nature-slash-crime-denmark</slug>
-      <url>http://epg.io/channel/viasat-nature-slash-crime-denmark</url>
-      <xmltv-id>nature.viasat.dk</xmltv-id>
-      <logo>
-        <original>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/nature.viasat.dk.png</original>
-        <large>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/large_nature.viasat.dk.png</large>
-        <medium>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/medium_nature.viasat.dk.png</medium>
-        <small>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/small_nature.viasat.dk.png</small>
-        <thumb>https://tvimg.net/channel/logo/5503e30f636861565c6a0200/thumb_nature.viasat.dk.png</thumb>
-      </logo>
-      <svg-logo>https://tvimg.net/channel/svg_logo/5503e30f636861565c6a0200/nature.viasat.dk.svg</svg-logo>
-      <countries type="array">
-        <country>DK</country>
-      </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:54+02:00</updated-at>
-    </channel>
-    <channel>
-      <id>5503e30f636861565c6b0200</id>
-      <name>Viasat Nature/Crime Finland</name>
-      <slug>viasat-nature-slash-crime-finland</slug>
-      <url>http://epg.io/channel/viasat-nature-slash-crime-finland</url>
-      <xmltv-id>naturecrime.viasat.fi</xmltv-id>
-      <logo>
-        <original>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/naturecrime.viasat.fi.png</original>
-        <large>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/large_naturecrime.viasat.fi.png</large>
-        <medium>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/medium_naturecrime.viasat.fi.png</medium>
-        <small>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/small_naturecrime.viasat.fi.png</small>
-        <thumb>https://tvimg.net/channel/logo/5503e30f636861565c6b0200/thumb_naturecrime.viasat.fi.png</thumb>
-      </logo>
-      <svg-logo>https://tvimg.net/channel/svg_logo/5503e30f636861565c6b0200/naturecrime.viasat.fi.svg</svg-logo>
-      <countries type="array">
-        <country>FI</country>
-      </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:56+02:00</updated-at>
-    </channel>
-    <channel>
-      <id>5503e310636861565c6c0200</id>
-      <name>Viasat Nature/Crime Norway</name>
-      <slug>viasat-nature-slash-crime-norway</slug>
-      <url>http://epg.io/channel/viasat-nature-slash-crime-norway</url>
-      <xmltv-id>nature.viasat.no</xmltv-id>
-      <logo>
-        <original>https://tvimg.net/channel/logo/5503e310636861565c6c0200/nature.viasat.no.png</original>
-        <large>https://tvimg.net/channel/logo/5503e310636861565c6c0200/large_nature.viasat.no.png</large>
-        <medium>https://tvimg.net/channel/logo/5503e310636861565c6c0200/medium_nature.viasat.no.png</medium>
-        <small>https://tvimg.net/channel/logo/5503e310636861565c6c0200/small_nature.viasat.no.png</small>
-        <thumb>https://tvimg.net/channel/logo/5503e310636861565c6c0200/thumb_nature.viasat.no.png</thumb>
-      </logo>
-      <svg-logo>https://tvimg.net/channel/svg_logo/5503e310636861565c6c0200/nature.viasat.no.svg</svg-logo>
-      <countries type="array">
-        <country>NO</country>
-      </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:57+02:00</updated-at>
-    </channel>
-    <channel>
       <id>5503e30e636861565c690200</id>
-      <name>Viasat Nature/Crime Sweden</name>
-      <slug>viasat-nature-slash-crime-sweden</slug>
-      <url>http://epg.io/channel/viasat-nature-slash-crime-sweden</url>
+      <name>Viasat Nature Sweden</name>
+      <slug>viasat-nature-sweden</slug>
+      <url>http://epg.io/channel/viasat-nature-sweden</url>
       <xmltv-id>nature-crime.viasat.se</xmltv-id>
       <logo>
         <original>https://tvimg.net/channel/logo/5503e30e636861565c690200/nature-crime.viasat.se.png</original>
@@ -13809,7 +13861,7 @@
       <countries type="array">
         <country>SE</country>
       </countries>
-      <updated-at type="dateTime">2015-07-27T05:30:59+02:00</updated-at>
+      <updated-at type="dateTime">2015-11-07T00:02:41+01:00</updated-at>
     </channel>
     <channel>
       <id>5521b09863686102820d0000</id>
@@ -13829,6 +13881,58 @@
         <country>PL</country>
       </countries>
       <updated-at type="dateTime">2015-07-29T00:01:38+02:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d3192273d7d594f000004</id>
+      <name>Viasat Series Denmark</name>
+      <slug>viasat-series-denmark</slug>
+      <url>http://epg.io/channel/viasat-series-denmark</url>
+      <xmltv-id>series.viasat.dk</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>DK</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:46+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d3192273d7d594f000005</id>
+      <name>Viasat Series Finland</name>
+      <slug>viasat-series-finland</slug>
+      <url>http://epg.io/channel/viasat-series-finland</url>
+      <xmltv-id>series.viasat.fi</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>FI</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:47+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d3192273d7d594f000006</id>
+      <name>Viasat Series Norway</name>
+      <slug>viasat-series-norway</slug>
+      <url>http://epg.io/channel/viasat-series-norway</url>
+      <xmltv-id>series.viasat.no</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>NO</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:50+01:00</updated-at>
+    </channel>
+    <channel>
+      <id>563d3192273d7d594f000007</id>
+      <name>Viasat Series Sweden</name>
+      <slug>viasat-series-sweden</slug>
+      <url>http://epg.io/channel/viasat-series-sweden</url>
+      <xmltv-id>series.viasat.se</xmltv-id>
+      <logo nil="true"/>
+      <svg-logo nil="true"/>
+      <countries type="array">
+        <country>SE</country>
+      </countries>
+      <updated-at type="dateTime">2015-11-08T00:00:44+01:00</updated-at>
     </channel>
     <channel>
       <id>5503e312636861565c6e0200</id>
