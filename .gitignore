@@ -1,3 +1,6 @@
 logos/png/
 apikey.conf
-
+flurryapicode.conf
+flurryapikey.conf
+popular.json.gz
+            
