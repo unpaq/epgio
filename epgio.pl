@@ -29,7 +29,7 @@ my $api_key = <$api_key_file>;
 chomp($api_key);
 close $api_key_file;
 
-my $endpoint = "https://api.epg.io/v1";
+my $endpoint = "https://api.honeybee.it/v2";
 my $ua = LWP::UserAgent->new();
 my %ratings;
 
@@ -98,7 +98,7 @@ sub handleChannel
 
 			my $content = $res->content;
 			my $json = decode_json( $content );
-			my $programs = $json->{channels}[0]->{programmes};
+			my $programs = $json; #->{channels}[0]->{programmes};
 			say " - " . scalar @$programs . " programs found.";
 			foreach my $p (@$programs)
 			{
@@ -116,35 +116,37 @@ sub handleChannel
 					$oneoutput{'subTitle'} = \%subtitle;
 				}
 				$oneoutput{'channel'} = $xmltvid;
-				my $desc = $p->{programme}->{description};
+				my $desc = $p->{description};
 				if (defined $desc && $desc ne '')
 				{
 					my %description;
 					$description{''} = $desc;
 					$oneoutput{'desc'} = \%description;
 				}
-				$dt = DateTime::Format::ISO8601->parse_datetime($p->{programme}->{start});
+				$dt = DateTime::Format::ISO8601->parse_datetime($p->{start});
 				$oneoutput{'start'} = $dt->epoch();
-				$dt = DateTime::Format::ISO8601->parse_datetime($p->{programme}->{stop});
+				$dt = DateTime::Format::ISO8601->parse_datetime($p->{stop});
 				$oneoutput{'stop'} = $dt->epoch();
 				
 				# id
-				my $epgio_id = $p->{programme}->{id};
+				my $epgio_id = $p->{id};
 				$oneoutput{'id'} = $epgio_id;
 
+				my $category = $p->{content}->{type};
+
 				# poster
-				my $poster = $p->{series}->{fanart}->{original};
+				my $poster = $p->{content}->{$category}->{images}->{fanart}->{original};
 				if (defined $poster && $poster ne '')
 				{
 					$oneoutput{'poster'} = $poster;
 				}
 
 				# imdb_id
-				my $imdb_id = $p->{series}->{external_ids}->{imdb_id};
+				my $imdb_id = $p->{content}->{$category}->{external_ids}->{imdb};
 				if (defined $imdb_id && $imdb_id ne '')
 				{
 					$oneoutput{'imdb_id'} = $imdb_id;
-					my $rating = imdbRating($p->{series}->{slug});
+					my $rating = imdbRating($p->{content}->{$category}->{ratings});
 					if ($rating > 0)
 					{
 						$oneoutput{'imdb_rating'} = $rating;
@@ -152,17 +154,16 @@ sub handleChannel
 				}
 
 				# tvdb_id
-				my $tvdb_id = $p->{series}->{external_ids}->{tvdb_id};
+				my $tvdb_id = $p->{$category}->{external_ids}->{tvdb};
 				if (defined $tvdb_id && $tvdb_id ne '')
 				{
 					$oneoutput{'tvdb_id'} = $tvdb_id;
 				}
 
-				my $category = $p->{series}->{category};
 				my $finalcat = "";
 				if ($category eq "series")
 				{
-					my $genres = $p->{series}->{genres};
+					my $genres = $p->{content}->{$category}->{genres};
 					$oneoutput{'origGenres'} = \@$genres;
 											
 						if (checkGenres(["News", "Politics"], \@$genres))
@@ -263,7 +264,7 @@ sub handleChannel
 				system("gzip -f $jsonoutf"); 
 				system("mv $jsonoutf" . ".gz /var/local/nonametv/json_staging/");
 			} else {
-				say Dumper(\%l1struct);                    
+#				say Dumper(\%l1struct);                    
 			}
 		} else {
 			print STDERR $res->status_line, "\n";
@@ -275,36 +276,37 @@ sub handleChannel
 
 sub imdbRating
 {
-    my($slug) = @_;
+    my($results) = @_;
     my $rating = 0;
-    my $lookup = $ratings{$slug};
+#    my $lookup = $ratings{$slug};
 
-    if (defined $lookup)
-    {
-        $rating = $lookup;
-    } else {
-        my $url = "$endpoint/series/$slug/ratings.json?api_key=$api_key";
-        my $req = new HTTP::Request GET => $url;
-        my $res = $ua->request($req);
-        if ($res->is_success)
-        {
-            my $json = decode_json( $res->content );
-            my $results = $json->{results};
+#    if (defined $lookup)
+#    {
+#        $rating = $lookup;
+#    } else {
+#        my $url = "$endpoint/series/$slug/ratings.json?api_key=$api_key";
+#        my $req = new HTTP::Request GET => $url;
+#        my $res = $ua->request($req);
+#        if ($res->is_success)
+#        {
+#            my $json = decode_json( $res->content );
+#            my $results = $json->{results};
+#            say "Ratings = " . Dumper(@$results);
             foreach my $r (@$results)
             {
-                if ($r->{type} eq "imdb")
+                if ($r->{provider} eq "imdb")
                 {
-                    if (defined $r->{votes} && $r->{votes} > 1000)
-                    {
+#                    if (defined $r->{votes} && $r->{votes} > 1000)
+#                    {
                         $rating = 0+$r->{rating};
-                    }
-                    $ratings{$slug} = $rating;
+#                    }
+#                    $ratings{$slug} = $rating;
                     last;
                 }
             }
-        }
-    }
-    
+#        }
+#    }
+
     return $rating;
 }
 
