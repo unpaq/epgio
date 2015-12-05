@@ -189,7 +189,7 @@ sub handleChannel
 							$finalcat = "Serier";
 						} else {
 						}
-				} elsif ($category eq "sports") {
+				} elsif ($category eq "sport") {
 					$finalcat = "Sport";
 				} elsif ($category eq "movie") {
 					$finalcat = "Film";
@@ -264,7 +264,7 @@ sub handleChannel
 				system("gzip -f $jsonoutf"); 
 				system("mv $jsonoutf" . ".gz /var/local/nonametv/json_staging/");
 			} else {
-#				say Dumper(\%l1struct);                    
+				say Dumper(\%l1struct);                    
 			}
 		} else {
 			print STDERR $res->status_line, "\n";
