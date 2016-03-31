@@ -13,11 +13,11 @@ my $ua = LWP::UserAgent->new();
 my %programs;
 my %programs2;
 
-open(my $api_key_file, "<", "/home/jacob/epgio/flurryapikey.conf") or die "Can't open flurryapikey.conf: $!";
+open(my $api_key_file, "<", "flurryapikey.conf") or die "Can't open flurryapikey.conf: $!";
 my $api_key = <$api_key_file>;
 chomp($api_key);
 close $api_key_file;
-open($api_key_file, "<", "/home/jacob/epgio/flurryapicode.conf") or die "Can't open flurryapicode.conf: $!";
+open($api_key_file, "<", "flurryapicode.conf") or die "Can't open flurryapicode.conf: $!";
 my $api_access_code = <$api_key_file>;
 chomp($api_access_code);
 close $api_key_file;
@@ -73,6 +73,6 @@ close $out;
 
 system("rm popular.json.gz");
 system("gzip popular.json");
-system("cp popular.json.gz /var/local/nonametv/json_staging/");
+system("cp popular.json.gz zipped/");
 system("s3cmd put popular.json.gz s3://tvguideplus --acl-public -m application/json --add-header='Content-Encoding: gzip'");
 

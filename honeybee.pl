@@ -1,8 +1,13 @@
 #!/usr/bin/perl
 
+my @time;
+
+my $starttime = time;
+
 use strict;
 use warnings;
 use LWP::UserAgent;
+use LWP::ConnCache;
 use JSON qw( decode_json );     # From CPAN
 use Data::Dumper;               # Perl core module
 use DateTime;
@@ -11,37 +16,132 @@ use 5.10.0;
 use match::simple qw(match);
 use utf8;
 use Getopt::Long;
+use File::Compare;
+use Term::ProgressBar;
 
 my $channel_id = $ARGV[0];
 my $xmlid = $ARGV[1];
-my $testmode = 0;
+
 my $api_key = readApiKey();
 my $endpoint = "https://api.honeybee.it/v2";
+
 my %ratings;
 my %cattrans;
 my %channeltrans;
 my $ua = LWP::UserAgent->new();
 
-checkTestMode();
+my $conn_cache = LWP::ConnCache->new();
+$conn_cache->total_capacity([10]) ;
+$ua->conn_cache($conn_cache);
 
+my $days = 11;
+my $maxchannels = 0;
+my $onlylisted = 0;
+my $nos3 = 0;
+my $onlyconfig = 0;
+my $showdiff = 0;
+my $sluggrep = "";
+
+GetOptions ("days=i" => \$days,
+            "onlylisted"  => \$onlylisted,
+            "onlyconfig"  => \$onlyconfig,
+            "showdiff"  => \$showdiff,
+            "maxchannels=i"  => \$maxchannels,
+            "sluggrep=s"  => \$sluggrep,
+            "nos3"  => \$nos3);
+	
 readCatTranslations();
+cleanOldFiles();
 
-if ($testmode == 0)
-{
-    system("rm output/*");
-}
+say $sluggrep;
 
 my $filters = getChannelFilter();
 my $channels = getChannelList($filters);
-exit 0;
-loopAllChannels();
 
-if ($testmode == 0)
+#exportChannelConf($channels);
+
+if (!$onlyconfig)
 {
-    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync /var/local/nonametv/json_staging/ s3://tvguideplus --delete-removed --acl-public");
+    loopAllChannels($channels);
+
+    if (!$nos3)
+    {
+        syncFilesToS3();
+    }
 }
+#printticks();
+
+my $endtime = time;
+
+my $minutes = POSIX::floor(($endtime-$starttime)/60);
+
+say "It took " . $minutes . " minutes and " . ($endtime-$starttime)%60 . " seconds";
+
+exit 0;
 
 # The end
+
+sub exportChannelConf
+{
+    my($channels) = @_;
+    my %exportStruct;
+
+    foreach my $channel (@$channels)
+    {
+        foreach my $country (@{$channel->{countries}})
+        {
+            if (!defined $exportStruct{$country})
+            {
+                $exportStruct{$country} = [];
+            }
+            push @{$exportStruct{$country}}, $channel;
+        }
+        delete $channel->{countries};
+    }
+
+    my $json_encoder = JSON->new->utf8(1);
+    $json_encoder->canonical(1); # produce sorted output
+    my $json_text = $json_encoder->encode(\%exportStruct);
+
+    say Dumper(\%exportStruct);
+
+    my $configName = "appChannelsConf.js";
+    open(my $out, ">", $configName) or die "Can't open $configName: $!";
+    print $out $json_text;
+    close $out;
+}
+
+sub tick
+{
+    my $t = times;
+    push @time, $t;
+}
+
+sub printticks
+{
+    my $prevt = 0;
+    my $i = 0;
+
+    foreach my $t (@time)
+    {
+        my $diff = +$t-$prevt;
+        say "$i: $diff";
+        $prevt = $t;
+        $i++;
+    }
+}
+
+sub cleanOldFiles
+{
+    system("find zipped -mtime +10 -exec rm {} \\;");
+    system("find originals -mtime +10 -exec rm {} \\;");
+}
+
+sub syncFilesToS3
+{
+    say "Syncing with S3...";
+    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped/ s3://tvguideplus --delete-removed --acl-public");
+}
 
 sub getChannelFilter
 {
@@ -73,10 +173,10 @@ sub getChannelFilter
         {
             my %channel;
             
-            $channel->{xmltvid} = $xmltvid;
-            $channel->{name} = $name;
+            $channel{xmltvid} = $xmltvid;
+            $channel{name} = $name;
             
-            %filters->{$slug} = \%channel;
+            $filters{$slug} = \%channel;
         }
     }
     close $in;
@@ -91,7 +191,7 @@ sub getChannelList
 
 #    my $url = "$endpoint/schedule/channels/dk?api_key=$api_key";
     my $url = "$endpoint/schedule/channels?api_key=$api_key";
-    say "$url";
+    #say "$url";
     my @channels;
     my $req = new HTTP::Request GET => $url;
     my $res = $ua->request($req);
@@ -106,10 +206,11 @@ sub getChannelList
 #            my $channel_input = $c->{channel};
             my $channel_input = $c;
             my $slug = $channel_input->{slug};
+            my $countries = $channel_input->{countries};
             my $honeybeeName = $channel_input->{name};
             my $honeybeeXmltvid = $channel_input->{xmltvid};
 
-            my $filter = %$filters->{$slug};
+            my $filter = $filters->{$slug};
             if (defined $filter)
             {
                 my $filterName = $filter->{name};              
@@ -118,15 +219,16 @@ sub getChannelList
                 if ($filterName eq "" && $filterXmltvid eq "")
                 {
                     # do nothing - channel should be skipped
-                    say "Skipped $slug";
+                    #say "Skipped $slug";
                 } else {
                     # channel is OK - determine the right name + xmltvid
-                    %channel->{slug} = $slug;
+                    $channel{slug} = $slug;
+                    $channel{countries} = $countries;
                     if ($filterName ne "")
                     {
-                        %channel->{name} = $filterName;
+                        $channel{name} = $filterName;
                     } else {
-                        %channel->{name} = $honeybeeName;
+                        $channel{name} = $honeybeeName;
                     }
                     if ($filterXmltvid ne "")
                     {
@@ -134,17 +236,21 @@ sub getChannelList
                         {
                             say "$slug $honeybeeXmltvid";
                         }
-                        %channel->{xmltvid} = $filterXmltvid;
+                        $channel{xmltvid} = $filterXmltvid;
                     } else {
-                        %channel->{xmltvid} = $honeybeeXmltvid;
+                        $channel{xmltvid} = $honeybeeXmltvid;
                     }
                     push @channels, \%channel;
                 }
             } else {
-                %channel->{slug} = $slug;
-                %channel->{name} = $honeybeeName;
-                %channel->{xmltvid} = $honeybeeXmltvid;
-                push @channels, \%channel;
+                if (!$onlylisted)
+                {
+                    $channel{slug} = $slug;
+                    $channel{countries} = $countries;
+                    $channel{name} = $honeybeeName;
+                    $channel{xmltvid} = $honeybeeXmltvid;
+                    push @channels, \%channel;
+                }
             }
         }
     } else {
@@ -157,19 +263,26 @@ sub getChannelList
 
 sub loopAllChannels
 {
-    if (!defined $channel_id)
+    my($channels) = @_;
+    my $channelcount = 0;
+
+    my $count = scalar @$channels;
+    my $progress = Term::ProgressBar->new ({count => $count,
+                                            ETA => 'linear'});
+
+    foreach my $c (@$channels)
     {
-        open(my $in, "<", "channels.conf") or die "Can't open channels.conf: $!";
-        while (<$in>)
+        if ($sluggrep eq "" || $c->{slug} =~ /$sluggrep/)
         {
-            if (/^(?!#)(.*) (.*)/)
+            handleChannel($c->{slug}, $c->{xmltvid});
+            $channelcount++;
+            $progress->update ($channelcount);
+#            say "$channelcount out of $count";
+            if ($maxchannels && $channelcount >= $maxchannels)
             {
-                handleChannel($1, $2);
+                last;
             }
         }
-        close $in;
-    } else {
-        handleChannel($channel_id, $xmlid);
     }
 }
 
@@ -179,13 +292,13 @@ sub handleChannel
 
     my $dt = DateTime->now;
 
-    say "Fetching $channel_slug ($xmltvid)";
+    #say "Fetching $channel_slug ($xmltvid)";
 
-    for (my $i = 1; $i < 10; $i++)
+    for (my $i = 1; $i < $days+1; $i++)
     {
         my $date = $dt->ymd;
         my $url = "$endpoint/schedule/listings/$date/$channel_slug.json?api_key=$api_key";
-        print "$url";
+        #print "$url";
         my $req = new HTTP::Request GET => $url;
         my $res = $ua->request($req);
         if ($res->is_success)
@@ -194,181 +307,254 @@ sub handleChannel
             my @pout;
 
             my $content = $res->content;
-            my $json = decode_json( $content );
-            my $programs = $json; #->{channels}[0]->{programmes};
-            say " - " . scalar @$programs . " programs found.";
-            foreach my $p (@$programs)
+            saveContent($content);
+            
+            if (newContent($xmltvid, $dt->ymd))
             {
-                my %oneoutput;
-                my $dt;
-                
-                my %title;
-                $title{''} = $p->{name}->{title};
-                $oneoutput{'title'} = \%title;;
-                my $subtitle = $p->{episode}->{name};
-                if (defined $subtitle && $subtitle ne '')
+                my $json = decode_json( $content );
+                my $programs = $json; #->{channels}[0]->{programmes};
+                #say " - " . scalar @$programs . " programs found.";
+                if (scalar @$programs)
                 {
-                    my %subtitle;
-                    $subtitle{''} = $subtitle;
-                    $oneoutput{'subTitle'} = \%subtitle;
-                }
-                $oneoutput{'channel'} = $xmltvid;
-                my $desc = $p->{description};
-                if (defined $desc && $desc ne '')
-                {
-                    my %description;
-                    $description{''} = $desc;
-                    $oneoutput{'desc'} = \%description;
-                }
-                $dt = DateTime::Format::ISO8601->parse_datetime($p->{start});
-                $oneoutput{'start'} = $dt->epoch();
-                $dt = DateTime::Format::ISO8601->parse_datetime($p->{stop});
-                $oneoutput{'stop'} = $dt->epoch();
-                
-                # id
-                my $epgio_id = $p->{id};
-                $oneoutput{'id'} = $epgio_id;
-
-                my $category = $p->{content}->{type};
-
-                # poster
-                my $poster = $p->{content}->{$category}->{images}->{fanart}->{original};
-                if (defined $poster && $poster ne '')
-                {
-                    $oneoutput{'poster'} = $poster;
-                }
-
-                # imdb_id
-                my $imdb_id = $p->{content}->{$category}->{external_ids}->{imdb};
-                if (defined $imdb_id && $imdb_id ne '')
-                {
-                    $oneoutput{'imdb_id'} = $imdb_id;
-                    my $rating = imdbRating($p->{content}->{$category}->{ratings});
-                    if ($rating > 0)
+                    foreach my $p (@$programs)
                     {
-                        $oneoutput{'imdb_rating'} = $rating;
-                    }
-                }
-
-                # tvdb_id
-                my $tvdb_id = $p->{$category}->{external_ids}->{tvdb};
-                if (defined $tvdb_id && $tvdb_id ne '')
-                {
-                    $oneoutput{'tvdb_id'} = $tvdb_id;
-                }
-
-                my $finalcat = "";
-                if ($category eq "series")
-                {
-                    my $genres = $p->{content}->{$category}->{genres};
-                    $oneoutput{'origGenres'} = \@$genres;
-                                            
-                        if (checkGenres(["News", "Politics"], \@$genres))
+                        my %oneoutput;
+                        my $dt;
+                        
+                        my %title;
+                        $title{''} = $p->{name}->{title};
+                        $oneoutput{'title'} = \%title;;
+                        my $subtitle = $p->{episode}->{name};
+                        if (defined $subtitle && $subtitle ne '')
                         {
-                            $finalcat = "Nyheder";
-                        } elsif (checkGenres(["Kids", "Animation"], \@$genres)) {
-                            $finalcat = "Børn & Ungdom";
-                        } elsif (checkGenres(["Entertainment", "Lifestyle", "Gameshow"], \@$genres)) {
-                            $finalcat = "Underholdning";
-                        } elsif (checkGenres(["Reality"], \@$genres)) {
-                            $finalcat = "Reality";     
-                        } elsif (checkGenres(["Mini-Series", "Sitcom"], \@$genres)) {
-                            $finalcat = "Serier";
-                        } elsif (checkGenres(["Music", "Musical"], \@$genres)) {
-                            $finalcat = "Musik";
-                        } elsif (checkGenres(["Cultural", "Cooking"], \@$genres)) {
-                            $finalcat = "Kultur";
-                        } elsif (checkGenres(["Animals", "Nature", "Home and Garden"], \@$genres)) {
-                            $finalcat = "Natur";
-                        } elsif (checkGenres(["History", "Biography", "Documentary"], \@$genres)) {
-                            $finalcat = "Dokumentar";
-                        } elsif (checkGenres(["Comedy", "Drama"], \@$genres)) {
-                            $finalcat = "Serier";
-                        } else {
+                            my %subtitle;
+                            $subtitle{''} = $subtitle;
+                            $oneoutput{'subTitle'} = \%subtitle;
                         }
-                } elsif ($category eq "sport") {
-                    $finalcat = "Sport";
-                } elsif ($category eq "movie") {
-                    $finalcat = "Film";
-                }
-                if ($finalcat eq "")
-                {
-                    foreach my $key ( keys %cattrans )
-                    {
-                        if (index($p->{name}->{title}, $key) != -1)
+                        $oneoutput{'channel'} = $xmltvid;
+                        my $desc = $p->{description};
+                        if (defined $desc && $desc ne '')
                         {
-                            $finalcat = $cattrans{$key};
-                            last;
+                            my %description;
+                            $description{''} = $desc;
+                            $oneoutput{'desc'} = \%description;
                         }
-                    }
-                }
-                if ($finalcat eq "")
-                {
-                    foreach my $key ( keys %channeltrans )
-                    {
-                        if (index($channel_slug, $key) != -1)
+                        $dt = DateTime::Format::ISO8601->parse_datetime($p->{start});
+                        $oneoutput{'start'} = $dt->epoch();
+                        $dt = DateTime::Format::ISO8601->parse_datetime($p->{stop});
+                        $oneoutput{'stop'} = $dt->epoch();
+                        
+                        # id
+                        my $epgio_id = $p->{id};
+                        $oneoutput{'id'} = $epgio_id;
+        
+                        my $category = $p->{content}->{type};
+        
+                        # poster
+                        my $poster = $p->{content}->{$category}->{images}->{fanart}->{original};
+                        if (defined $poster && $poster ne '')
                         {
-                            $finalcat = $channeltrans{$key};
-                            last;
+                            $oneoutput{'poster'} = $poster;
                         }
+        
+                        # imdb_id
+                        my $imdb_id = $p->{content}->{$category}->{external_ids}->{imdb};
+                        if (defined $imdb_id && $imdb_id ne '')
+                        {
+                            $oneoutput{'imdb_id'} = $imdb_id;
+                            my $rating = imdbRating($p->{content}->{$category}->{ratings});
+                            if ($rating > 0)
+                            {
+                                $oneoutput{'imdb_rating'} = $rating;
+                            }
+                        }
+        
+                        # tvdb_id
+                        my $tvdb_id = $p->{$category}->{external_ids}->{tvdb};
+                        if (defined $tvdb_id && $tvdb_id ne '')
+                        {
+                            $oneoutput{'tvdb_id'} = $tvdb_id;
+                        }
+                        
+                        # credits (actors/director)
+                        if (defined $p->{credits}->{actor})
+                        {
+                            $oneoutput{'credits'} = $p->{credits};
+                        }
+        
+                        my $finalcat = "";
+                        if ($category eq "series")
+                        {
+                            my $genres = $p->{content}->{$category}->{genres};
+                            $oneoutput{'origGenres'} = \@$genres;
+                                                    
+                            if (checkGenres(["News", "Politics"], \@$genres))
+                            {
+                                $finalcat = "Nyheder";
+                            } elsif (checkGenres(["Kids", "Animation"], \@$genres)) {
+                                $finalcat = "Børn & Ungdom";
+                            } elsif (checkGenres(["Entertainment", "Lifestyle", "Gameshow"], \@$genres)) {
+                                $finalcat = "Underholdning";
+                            } elsif (checkGenres(["Reality"], \@$genres)) {
+                                $finalcat = "Reality";     
+                            } elsif (checkGenres(["Mini-Series", "Sitcom"], \@$genres)) {
+                                $finalcat = "Serier";
+                            } elsif (checkGenres(["Music", "Musical"], \@$genres)) {
+                                $finalcat = "Musik";
+                            } elsif (checkGenres(["Cultural", "Cooking"], \@$genres)) {
+                                $finalcat = "Kultur";
+                            } elsif (checkGenres(["Animals", "Nature", "Home and Garden"], \@$genres)) {
+                                $finalcat = "Natur";
+                            } elsif (checkGenres(["History", "Biography", "Documentary"], \@$genres)) {
+                                $finalcat = "Dokumentar";
+                            } elsif (checkGenres(["Comedy", "Drama"], \@$genres)) {
+                                $finalcat = "Serier";
+                            } else {
+                            }
+                        } elsif ($category eq "sport") {
+                            $finalcat = "Sport";
+                        } elsif ($category eq "movie") {
+                            $finalcat = "Film";
+                        }
+                        if ($finalcat eq "")
+                        {
+    #                        foreach my $key ( sort{$a cmp $b} keys %cattrans )
+                            foreach my $key ( keys %cattrans )
+                            {
+                                if (index($p->{name}->{title}, $key) != -1)
+                                {
+                                    $finalcat = $cattrans{$key};
+                                    last;
+                                }
+                            }
+                        }
+                        if ($finalcat eq "")
+                        {
+                            foreach my $key ( keys %channeltrans )
+                            {
+                                if (index($channel_slug, $key) != -1)
+                                {
+                                    $finalcat = $channeltrans{$key};
+                                    last;
+                                }
+                            }
+                        }
+        #               if ($finalcat eq "")
+        #               {
+        #                   my $genres = $p->{series}->{genres};
+        #                   say "T: " . $p->{name}->{title} . " -- " . join(", ", @$genres);
+        #               }
+                        my %cathash;
+                        my @catarray;
+                        push @catarray, $finalcat;
+                        $cathash{'en'} = \@catarray;
+                        $oneoutput{'category'} = \%cathash;
+                        
+                        my $episode = $p->{'episode'}->{number};
+                        
+                        if (defined $episode && $episode ne '')
+                        {
+                            $episode = $episode-1;
+                            my %episodeNum;
+                            my $season = $p->{'episode'}->{'season_number'};
+                            if (defined $season && $season ne '')
+                            {
+                                $season = $season-1;
+                                $episodeNum{'xmltv_ns'} = $season . "." . $episode . ".";
+                            } else {
+                                $episodeNum{'xmltv_ns'} = "." . $episode . ".";
+                            }
+                            $oneoutput{'episodeNum'} = \%episodeNum;;
+                        }
+        
+                        push @pout, \%oneoutput;
+        #                     say $oneoutput{'title'} . ": " . $category . " " . Dumper(\$p->{series}->{genres}) . "=>" . $finalcat;
+        #                    say Dumper(\%oneoutput);
                     }
-                }
-#               if ($finalcat eq "")
-#               {
-#                   my $genres = $p->{series}->{genres};
-#                   say "T: " . $p->{name}->{title} . " -- " . join(", ", @$genres);
-#               }
-                my %cathash;
-                my @catarray;
-                push @catarray, $finalcat;
-                $cathash{'en'} = \@catarray;
-                $oneoutput{'category'} = \%cathash;
-                
-                my $episode = $p->{'episode'}->{number};
-                
-                if (defined $episode && $episode ne '')
-                {
-                    $episode = $episode-1;
-                    my %episodeNum;
-                    my $season = $p->{'episode'}->{'season_number'};
-                    if (defined $season && $season ne '')
+                    my %l1struct;
+                    my %l2struct;
+                    $l2struct{'programme'} = \@pout;
+                    $l1struct{'jsontv'} = \%l2struct;
+        
+                    my $json_encoder = JSON->new->utf8(1);
+                    $json_encoder->canonical(1); # produce sorted output
+                    my $json_text = $json_encoder->encode(\%l1struct);
+    #               say $json_text;
+                    my $jsonfilename = $xmltvid . "_" . $dt->ymd . ".js";
+                    my $outputfullpath = "zipped/" . $jsonfilename;
+                    my $zippedfullpath = "zipped/" . $jsonfilename . ".gz";
+                    open(my $out, ">", $outputfullpath) or die "Can't open $outputfullpath: $!";
+                    print $out $json_text;
+                    close $out;
+                    
+                    if (-e $zippedfullpath)
                     {
-                        $season = $season-1;
-                        $episodeNum{'xmltv_ns'} = $season . "." . $episode . ".";
-                    } else {
-                        $episodeNum{'xmltv_ns'} = "." . $episode . ".";
+                        system("rm $zippedfullpath");
                     }
-                    $oneoutput{'episodeNum'} = \%episodeNum;;
+                    system("gzip $outputfullpath");
+                    
+#                    if (! -e $jsonfullpath || compare($outputfullpath, $jsonfullpath))
+#                    {
+#                        if (! -e $jsonfullpath)
+#                        {
+#                            say "$jsonfilename did not exist";
+#                        } else {
+#                            say "$jsonfilename was different";
+#                            if ($showdiff)
+#                            {
+#                                system("ksdiff -w $outputfullpath $jsonfullpath");
+#                            }
+#                            system("mv -f $jsonfullpath prevjson/");
+#                            system("ksdiff $outputfullpath prevjson/$jsonfilename");
+#                        }
+#                        system("cp -a $outputfullpath json/");
+#                    }
+#                    if (! -e $zippedfullpath)
+#                    {
+#                    }
                 }
-
-                push @pout, \%oneoutput;
-#                     say $oneoutput{'title'} . ": " . $category . " " . Dumper(\$p->{series}->{genres}) . "=>" . $finalcat;
-#                    say Dumper(\%oneoutput);
-            }
-            my %l1struct;
-            my %l2struct;
-            $l2struct{'programme'} = \@pout;
-            $l1struct{'jsontv'} = \%l2struct;
-
-            my $json_text = JSON->new->utf8(1)->encode(\%l1struct);
-#                say $json_text;
-            if ($testmode == 0)
-            {
-                my $jsonoutf = "output/" . $xmltvid . "_" . $dt->ymd . ".js";
-                open(my $out, ">", $jsonoutf) or die "Can't open $jsonoutf: $!";
-                print $out $json_text;
-                close $out;
-                system("gzip -f $jsonoutf"); 
-#                system("mv $jsonoutf" . ".gz /var/local/nonametv/json_staging/");
-                system("mv $jsonoutf" . ".gz json_staging/");
-            } else {
-                say Dumper(\%l1struct);                    
             }
         } else {
-            print STDERR $res->status_line, "\n";
+            print STDERR $channel_slug . ": " . $res->status_line, "\n";
+            #print "\n";
         }
 
         $dt->add( days => 1 );
+    }
+}
+
+sub saveContent
+{
+    my($content) = @_;
+    my $jsonfilename = "downloads/data.js";
+
+    open(my $out, ">", $jsonfilename) or die "Can't open $jsonfilename: $!";
+    print $out $content;
+    close $out;
+}
+
+sub newContent
+{
+    my($xmltvid, $date) = @_;
+    my $downloadFilename = "downloads/data.js";
+    my $jsonfilename = "originals/" . $xmltvid . "_" . $date . ".js";
+    
+    if (! -e $jsonfilename || compare($downloadFilename, $jsonfilename))
+    {
+        if (! -e $jsonfilename)
+        {
+            say "$jsonfilename did not exist";
+        } else {
+            say "$jsonfilename was different";
+            if ($showdiff)
+            {
+                system("ksdiff -w $downloadFilename $jsonfilename");
+            }
+        }
+        system("mv -f $downloadFilename $jsonfilename");
+        return 1;
+    } else {
+        return 0;
     }
 }
 
@@ -428,20 +614,8 @@ sub readApiKey
 {
     open(my $api_key_file, "<", "apikey.conf") or die "Can't open apikey.conf: $!";
     my $key = <$api_key_file>;
-    chomp($api_key);
+    chomp($key);
     close $api_key_file;
     
     return $key;
-}
-
-sub checkTestMode
-{
-    if (defined $channel_id)
-    {
-        if (!defined $xmlid)
-        {
-            $testmode = 1;
-            $xmlid = "test.test.dk";
-        }
-    }
 }

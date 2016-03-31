@@ -11,7 +11,7 @@ use 5.10.0;
 use match::simple qw(match);
 use utf8;
 
-open(my $in, "<", "/home/jacob/epgio/cd_channellist.conf") or die "Can't open cd_channellist.conf: $!";
+open(my $in, "<", "cd_channellist.conf") or die "Can't open cd_channellist.conf: $!";
 
 my %channels;
 
