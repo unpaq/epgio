@@ -22,6 +22,9 @@ use Term::ProgressBar;
 my $channel_id = $ARGV[0];
 my $xmlid = $ARGV[1];
 
+use File::Basename;
+chdir dirname(__FILE__);
+
 my $api_key = readApiKey();
 my $endpoint = "https://api.honeybee.it/v2";
 

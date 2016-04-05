@@ -8,6 +8,9 @@ use Data::Dumper;
 use LWP::UserAgent;
 use DateTime;
 
+use File::Basename;
+chdir dirname(__FILE__);
+
 my $ua = LWP::UserAgent->new();
 
 my %programs;
