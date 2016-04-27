@@ -18,6 +18,8 @@ use utf8;
 use Getopt::Long;
 use File::Compare;
 use Term::ProgressBar;
+use Email::MIME;
+use Email::Sender::Simple qw(sendmail);
 
 my $channel_id = $ARGV[0];
 my $xmlid = $ARGV[1];
@@ -44,6 +46,9 @@ my $nos3 = 0;
 my $onlyconfig = 0;
 my $showdiff = 0;
 my $sluggrep = "";
+my $sendmail = 0;
+my $force = 0;
+my %updates;
 
 GetOptions ("days=i" => \$days,
             "onlylisted"  => \$onlylisted,
@@ -51,7 +56,9 @@ GetOptions ("days=i" => \$days,
             "showdiff"  => \$showdiff,
             "maxchannels=i"  => \$maxchannels,
             "sluggrep=s"  => \$sluggrep,
-            "nos3"  => \$nos3);
+            "nos3"  => \$nos3,
+            "force"  => \$force,
+            "sendmail" => \$sendmail);
 	
 readCatTranslations();
 cleanOldFiles();
@@ -73,6 +80,26 @@ if (!$onlyconfig)
     }
 }
 #printticks();
+
+if ($sendmail)
+{
+    my $message = Email::MIME->create(
+        header_str => [
+            From    => 'unpaq.epg@gmail.com',
+            To      => 'jacob@unpaq.com',
+            Subject => 'Honeybee',
+                        ],
+            attributes => {
+                 encoding => 'quoted-printable',
+                 charset  => 'ISO-8859-1',
+                          },
+            body_str => "Happy birthday to you!\n",
+                              );
+
+    sendmail($message);
+}
+
+say Dumper(\%updates);
 
 my $endtime = time;
 
@@ -312,8 +339,9 @@ sub handleChannel
             my $content = $res->content;
             saveContent($content);
             
-            if (newContent($xmltvid, $dt->ymd))
+            if ($force || newContent($xmltvid, $dt->ymd))
             {
+                setState($xmltvid, $dt->ymd, "Updated");
                 my $json = decode_json( $content );
                 my $programs = $json; #->{channels}[0]->{programmes};
                 #say " - " . scalar @$programs . " programs found.";
@@ -386,9 +414,9 @@ sub handleChannel
                         }
         
                         my $finalcat = "";
+                        my $genres = $p->{content}->{$category}->{genres};
                         if ($category eq "series")
                         {
-                            my $genres = $p->{content}->{$category}->{genres};
                             $oneoutput{'origGenres'} = \@$genres;
                                                     
                             if (checkGenres(["News", "Politics"], \@$genres))
@@ -417,7 +445,12 @@ sub handleChannel
                         } elsif ($category eq "sport") {
                             $finalcat = "Sport";
                         } elsif ($category eq "movie") {
-                            $finalcat = "Film";
+                            if (checkGenres(["Documentary"], \@$genres) && not defined $imdb_id)
+                            {
+                                $finalcat = "Dokumentar";
+                            } else {
+                                $finalcat = "Film";
+                            }
                         }
                         if ($finalcat eq "")
                         {
@@ -515,9 +548,14 @@ sub handleChannel
 #                    if (! -e $zippedfullpath)
 #                    {
 #                    }
+                } else {
+                    setState($xmltvid, $dt->ymd, "0 programs");
                 }
+            } else {
+                setState($xmltvid, $dt->ymd, "Same");
             }
         } else {
+            setState($xmltvid, $dt->ymd, "Error");
             print STDERR $channel_slug . ": " . $res->status_line, "\n";
             #print "\n";
         }
@@ -622,3 +660,17 @@ sub readApiKey
     
     return $key;
 }
+
+sub setState
+{
+    my($xmltvid, $date, $state) = @_;
+    
+    if (!defined $updates{$xmltvid})
+    {
+        $updates{$xmltvid} = {};
+    }
+    
+    my $dateHash = $updates{$xmltvid};
+    $dateHash->{$date} = $state;
+}
+
