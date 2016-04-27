@@ -81,24 +81,6 @@ if (!$onlyconfig)
 }
 #printticks();
 
-if ($sendmail)
-{
-    my $message = Email::MIME->create(
-        header_str => [
-            From    => 'unpaq.epg@gmail.com',
-            To      => 'jacob@unpaq.com',
-            Subject => 'Honeybee',
-                        ],
-            attributes => {
-                 encoding => 'quoted-printable',
-                 charset  => 'ISO-8859-1',
-                          },
-            body_str => "Happy birthday to you!\n",
-                              );
-
-    sendmail($message);
-}
-
 say Dumper(\%updates);
 
 my $endtime = time;
@@ -672,5 +654,25 @@ sub setState
     
     my $dateHash = $updates{$xmltvid};
     $dateHash->{$date} = $state;
+}
+
+sub sendemail
+{
+  my($subject, $body) = @_;
+  
+  my $message = Email::MIME->create(
+  header_str => [
+  From    => 'unpaq.epg@gmail.com',
+  To      => 'jacob@unpaq.com',
+  Subject => $subject,
+  ],
+  attributes => {
+    encoding => 'quoted-printable',
+    charset  => 'ISO-8859-1',
+  },
+  body_str => $body,
+  );
+  
+  sendmail($message);
 }
 
