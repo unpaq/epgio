@@ -10,10 +10,16 @@ use DateTime::Format::ISO8601;
 use 5.10.0;
 use match::simple qw(match);
 use utf8;
+use Email::MIME;
+use Email::Sender::Simple qw(sendmail);
+
+use File::Basename;
+chdir dirname(__FILE__);
 
 open(my $in, "<", "cd_channellist.conf") or die "Can't open cd_channellist.conf: $!";
 
 my %channels;
+my $log = "";
 
 my $filelist = `s3cmd --config /home/jacob/.s3cfg ls s3://tvguideplus`;
 
@@ -51,13 +57,35 @@ while (<$in>)
 
         if (scalar %missing)
         {
-            say "$channelname ($xmltvid)";        
-            say "    $_" for keys %missing;
+            $log = "$log$channelname ($xmltvid)\n";
+            $log = "$log    $_\n" for keys %missing;
         }
     }
 }
 
 close $in;
 
+if ($log ne "")
+{
+    sendemail("Missing channel data!", $log);
+}
 
+sub sendemail
+{
+    my($subject, $body) = @_;
+    
+    my $message = Email::MIME->create(
+                header_str => [
+                    From    => 'unpaq.epg@gmail.com',
+                    To      => 'jacob@unpaq.com',
+                    Subject => $subject,
+                              ],
+                attributes => {
+                    encoding => 'quoted-printable',
+                    charset  => 'ISO-8859-1',
+                              },
+                body_str => $body,
+                                      );
 
+    sendmail($message);
+}
