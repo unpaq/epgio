@@ -48,6 +48,7 @@ my $showdiff = 0;
 my $sluggrep = "";
 my $sendmail = 0;
 my $force = 0;
+my $verbose = 0;
 my %updates;
 
 GetOptions ("days=i" => \$days,
@@ -58,6 +59,7 @@ GetOptions ("days=i" => \$days,
             "sluggrep=s"  => \$sluggrep,
             "nos3"  => \$nos3,
             "force"  => \$force,
+            "verbose"  => \$verbose,
             "sendmail" => \$sendmail);
 	
 readCatTranslations();
@@ -68,10 +70,10 @@ say $sluggrep;
 my $filters = getChannelFilter();
 my $channels = getChannelList($filters);
 
-#exportChannelConf($channels);
-
-if (!$onlyconfig)
+if ($onlyconfig)
 {
+    exportChannelConf($channels);
+} else {
     loopAllChannels($channels);
 
     if (!$nos3)
@@ -97,6 +99,7 @@ sub exportChannelConf
 {
     my($channels) = @_;
     my %exportStruct;
+    my @exportArray;
 
     foreach my $channel (@$channels)
     {
@@ -108,19 +111,27 @@ sub exportChannelConf
             }
             push @{$exportStruct{$country}}, $channel;
         }
-        delete $channel->{countries};
+#        delete $channel->{countries};
+        push @exportArray, $channel;
     }
 
     my $json_encoder = JSON->new->utf8(1);
     $json_encoder->canonical(1); # produce sorted output
-    my $json_text = $json_encoder->encode(\%exportStruct);
 
-    say Dumper(\%exportStruct);
+    my $json_text = $json_encoder->encode(\@exportArray);
+
+#    say Dumper(\@exportArray) if $verbose;
 
     my $configName = "appChannelsConf.js";
+    my $configZip = "$configName.gz";
     open(my $out, ">", $configName) or die "Can't open $configName: $!";
     print $out $json_text;
     close $out;
+    if (-e $configZip)
+    {
+        system("rm $configZip");
+    }
+    system("gzip $configName;s3cmd -m application/json --add-header='Content-Encoding: gzip' put $configName.gz s3://easytv.misc --acl-public");
 }
 
 sub tick
@@ -193,7 +204,8 @@ sub getChannelFilter
     }
     close $in;
 
-    #say Dumper(\%filters);  
+#    say "Filters = " . Dumper(\%filters) if $verbose;
+
     return \%filters;
 }
 
@@ -203,7 +215,7 @@ sub getChannelList
 
 #    my $url = "$endpoint/schedule/channels/dk?api_key=$api_key";
     my $url = "$endpoint/schedule/channels?api_key=$api_key";
-    #say "$url";
+    say "$url" if $verbose;
     my @channels;
     my $req = new HTTP::Request GET => $url;
     my $res = $ua->request($req);
@@ -218,6 +230,8 @@ sub getChannelList
 #            my $channel_input = $c->{channel};
             my $channel_input = $c;
             my $slug = $channel_input->{slug};
+            say "Slug = " . $slug if $verbose;
+
             my $countries = $channel_input->{countries};
             my $honeybeeName = $channel_input->{name};
             my $honeybeeXmltvid = $channel_input->{xmltvid};
@@ -231,7 +245,7 @@ sub getChannelList
                 if ($filterName eq "" && $filterXmltvid eq "")
                 {
                     # do nothing - channel should be skipped
-                    #say "Skipped $slug";
+                    say "Skipped $slug" if $verbose;
                 } else {
                     # channel is OK - determine the right name + xmltvid
                     $channel{slug} = $slug;
@@ -252,6 +266,7 @@ sub getChannelList
                     } else {
                         $channel{xmltvid} = $honeybeeXmltvid;
                     }
+                    say "Channel = " . Dumper(\%channel) if $verbose;
                     push @channels, \%channel;
                 }
             } else {
