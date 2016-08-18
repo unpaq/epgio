@@ -79,6 +79,7 @@ if ($onlyconfig)
     if (!$nos3)
     {
         syncFilesToS3();
+        syncLogos();
     }
 }
 #printticks();
@@ -98,20 +99,24 @@ exit 0;
 sub exportChannelConf
 {
     my($channels) = @_;
-    my %exportStruct;
     my @exportArray;
 
     foreach my $channel (@$channels)
     {
-        foreach my $country (@{$channel->{countries}})
+        if ($channel->{name} =~ /(.*) (Denmark|Norway|Sweden|Finland|Austria|Germany|Poland|Switzerland|Netherlands)( English)?/)
         {
-            if (!defined $exportStruct{$country})
+            if (! defined $3 || $3 eq "")
             {
-                $exportStruct{$country} = [];
+                say "$channel->{name} -> $1" if $verbose;
+                $channel->{name} = $1;
+            } else {
+                say "$channel->{name} -> $1$3" if $verbose;
+                $channel->{name} = "$1$3";
             }
-            push @{$exportStruct{$country}}, $channel;
+        } else {
+            say $channel->{name} if $verbose;
         }
-#        delete $channel->{countries};
+        delete $channel->{svg};
         push @exportArray, $channel;
     }
 
@@ -176,15 +181,16 @@ sub getChannelFilter
         my $slug = "";
         my $xmltvid = "";
         my $name = "";
+        my $live = "";
                 
         if (/^(?!#)(.*) (.*) (.*)/)
         {
             $slug = $1;
             $xmltvid = $2;
-            $name = $3;
-        } elsif (/^(?!#)(.*) N:(.*)/) {
+            $live = $3;
+        } elsif (/^(?!#)(.*) live=(.*)/) {
             $slug = $1;
-            $name = $2;
+            $live = $2;
         } elsif (/^(?!#)(.*) (.*)/) {
             $slug = $1;
             $xmltvid = $2;
@@ -198,6 +204,7 @@ sub getChannelFilter
             
             $channel{xmltvid} = $xmltvid;
             $channel{name} = $name;
+            $channel{livelink} = $live;
             
             $filters{$slug} = \%channel;
         }
@@ -235,14 +242,15 @@ sub getChannelList
             my $countries = $channel_input->{countries};
             my $honeybeeName = $channel_input->{name};
             my $honeybeeXmltvid = $channel_input->{xmltvid};
+            my $svg = $channel_input->{logos}->{svg};
 
             my $filter = $filters->{$slug};
-            if (defined $filter)
-            {
+            if (defined $filter) {
                 my $filterName = $filter->{name};              
                 my $filterXmltvid = $filter->{xmltvid};
+                my $livelink = $filter->{livelink};
                 
-                if ($filterName eq "" && $filterXmltvid eq "")
+                if ($filterName eq "" && $filterXmltvid eq "" && $livelink eq "")
                 {
                     # do nothing - channel should be skipped
                     say "Skipped $slug" if $verbose;
@@ -250,6 +258,8 @@ sub getChannelList
                     # channel is OK - determine the right name + xmltvid
                     $channel{slug} = $slug;
                     $channel{countries} = $countries;
+                    $channel{svg} = $svg;
+                    $channel{livelink} = $livelink;
                     if ($filterName ne "")
                     {
                         $channel{name} = $filterName;
@@ -270,12 +280,16 @@ sub getChannelList
                     push @channels, \%channel;
                 }
             } else {
-                if (!$onlylisted)
+                if (scalar(@$countries) == 0 || !defined $svg || $svg eq "")
                 {
+                    # do nothing - channel should be skipped
+                    say "Skipped $slug because no countries or svg" if $verbose;
+                } elsif (!$onlylisted) {
                     $channel{slug} = $slug;
                     $channel{countries} = $countries;
                     $channel{name} = $honeybeeName;
                     $channel{xmltvid} = $honeybeeXmltvid;
+                    $channel{svg} = $svg;
                     push @channels, \%channel;
                 }
             }
@@ -284,7 +298,7 @@ sub getChannelList
         print STDERR $res->status_line, "\n";
     }
     
-    #say Dumper(\@channels);
+    say Dumper(\@channels) if $verbose;
     return \@channels;
 }
 
@@ -302,6 +316,7 @@ sub loopAllChannels
         if ($sluggrep eq "" || $c->{slug} =~ /$sluggrep/)
         {
             handleChannel($c->{slug}, $c->{xmltvid});
+            checkLogo($c->{xmltvid}, $c->{svg});
             $channelcount++;
             $progress->update ($channelcount);
 #            say "$channelcount out of $count";
@@ -319,7 +334,7 @@ sub handleChannel
 
     my $dt = DateTime->now;
 
-    #say "Fetching $channel_slug ($xmltvid)";
+    say "Fetching $channel_slug ($xmltvid)" if $verbose;
 
     for (my $i = 1; $i < $days+1; $i++)
     {
@@ -433,20 +448,26 @@ sub handleChannel
                                 $finalcat = "Kultur";
                             } elsif (checkGenres(["Animals", "Nature", "Home and Garden"], \@$genres)) {
                                 $finalcat = "Natur";
-                            } elsif (checkGenres(["History", "Biography", "Documentary"], \@$genres)) {
-                                $finalcat = "Dokumentar";
                             } elsif (checkGenres(["Comedy", "Drama"], \@$genres)) {
                                 $finalcat = "Serier";
+                            } elsif (checkGenres(["History", "Biography", "Documentary"], \@$genres)) {
+                                $finalcat = "Dokumentar";
                             } else {
                             }
                         } elsif ($category eq "sport") {
                             $finalcat = "Sport";
                         } elsif ($category eq "movie") {
-                            if (checkGenres(["Documentary"], \@$genres) && not defined $imdb_id)
+                            if (checkGenres(["Documentary"], \@$genres))
                             {
                                 $finalcat = "Dokumentar";
                             } else {
-                                $finalcat = "Film";
+                                my $runtime = ($oneoutput{'stop'}-$oneoutput{'start'})/60;
+                                if ($runtime > 10)
+                                {
+                                    $finalcat = "Film";
+                                } else {
+                                    $finalcat = "";
+                                }
                             }
                         }
                         if ($finalcat eq "")
@@ -691,3 +712,27 @@ sub sendemail
   sendmail($message);
 }
 
+sub checkLogo
+{
+    my($xmltvid, $svglogo) = @_;
+    my $logopath = "logos/png/$xmltvid.png";
+    
+    say "checking logo for $xmltvid" if $verbose;
+    if (! -e $logopath)
+    {
+        system("wget $svglogo -O logo.svg");
+#        system("rm png/$xmltvid.png");
+#        say "Converting to PNG";
+        system("inkscape -z -e $logopath -w 1000 --export-background-opacity=0.0 logo.svg");
+#        say "Scaling";
+        system("mogrify -monitor -trim -resize 500x500 $logopath");
+#        say "Squash";
+        system("pngquant --quality=0-90 -v -f --ext .png $logopath");
+    }
+}
+
+sub syncLogos
+{
+    say "Sync logos with S3";
+    system("s3cmd sync logos/png/ s3://easytv.logos --delete-removed --acl-public");
+}
