@@ -38,16 +38,27 @@ if ($res->is_success)
 {
     my $content = $res->content;
     my $json = decode_json( $content );
-    my $events =  $json->{parameters}->{key}->{value};
+#    say Dumper($json);
+    my $eventparams =  $json->{parameters}->{key};
+#    my $events =  $json->{parameters}->{key}->{value};
 
+    foreach my $eventparname (@$eventparams)
+    {
+    my $eventparam = $eventparname->{'@name'};
+    if ($eventparam eq "Channel: Title")
+    {
+    my $events = $eventparname->{value};
     foreach my $event (@$events)
     {
 #        say Dumper($event);
+#        say $event;
         my $count = $event->{'@totalCount'};
         my $name = $event->{'@name'};
 #        say $count . ": " . $name;
 
         $programs{$name} += $count;
+    }
+    }
     }
 }
 
@@ -55,7 +66,10 @@ if ($res->is_success)
 
 my $index=0;
 foreach my $title (sort { $programs{$b} <=> $programs{$a} } keys %programs) {
-#    say $programs{$title} . ": " . $title;
+    if ($title ne "com.flurry.OTHER")
+    {
+        say $programs{$title} . ": " . $title;
+    }
     $programs2{$title} = $programs{$title};    
     $index++;
     if ($index>50)
@@ -68,7 +82,7 @@ foreach my $title (sort { $programs{$b} <=> $programs{$a} } keys %programs) {
 
 my $json_text = JSON->new->utf8(1)->encode(\%programs2);
 
-say $json_text;
+#say $json_text;
 
 open(my $out, ">", "popular.json") or die "Can't open popular.json: $!";
 print $out $json_text;
@@ -78,4 +92,5 @@ system("rm popular.json.gz");
 system("gzip popular.json");
 system("cp popular.json.gz zipped/");
 system("s3cmd put popular.json.gz s3://tvguideplus --acl-public -m application/json --add-header='Content-Encoding: gzip'");
+system("s3cmd put popular.json.gz s3://easytv.misc --acl-public -m application/json --add-header='Content-Encoding: gzip'");
 
