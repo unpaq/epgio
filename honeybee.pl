@@ -103,15 +103,19 @@ sub exportChannelConf
 
     foreach my $channel (@$channels)
     {
-        if ($channel->{name} =~ /(.*) (Denmark|Norway|Sweden|Finland|Austria|Germany|Poland|Switzerland|Netherlands)( English)?/)
+        if ($channel->{name} =~ /(.*\S) ?\((DK|DE|SE|NO|FI|PL|NL|CH|AT)\) *\(?(English)?/)
         {
             if (! defined $3 || $3 eq "")
             {
                 say "$channel->{name} -> $1" if $verbose;
                 $channel->{name} = $1;
             } else {
-                say "$channel->{name} -> $1$3" if $verbose;
-                $channel->{name} = "$1$3";
+                say "$channel->{name} -> $1 $3" if $verbose;
+                $channel->{name} = "$1 $3";
+            }
+            if ($2 ne "")
+            {
+                $channel->{lang} = $2;
             }
         } else {
             say $channel->{name} if $verbose;
@@ -162,12 +166,17 @@ sub printticks
 sub cleanOldFiles
 {
     system("find zipped -mtime +10 -exec rm {} \\;");
+    system("find zipped_old -mtime +10 -exec rm {} \\;");
     system("find originals -mtime +10 -exec rm {} \\;");
 }
 
 sub syncFilesToS3
 {
     say "Syncing with S3...";
+    say "Syncing new...";
+    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped/ s3://easytv.epg --delete-removed --acl-public");
+    say "Syncing old...";
+#    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped_old/ s3://tvguideplus --acl-public");
     system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped/ s3://tvguideplus --delete-removed --acl-public");
 }
 
@@ -259,22 +268,26 @@ sub getChannelList
                     $channel{slug} = $slug;
                     $channel{countries} = $countries;
                     $channel{svg} = $svg;
-                    $channel{livelink} = $livelink;
+                    if ($livelink ne "")
+                    {
+                        $channel{livelink} = $livelink;
+                    }
                     if ($filterName ne "")
                     {
                         $channel{name} = $filterName;
                     } else {
                         $channel{name} = $honeybeeName;
                     }
+                    $channel{xmltvid} = $honeybeeXmltvid;
                     if ($filterXmltvid ne "")
                     {
-                        if ($filterXmltvid eq $honeybeeXmltvid)
+                        if ($filterXmltvid eq "old")
                         {
-                            say "$slug $honeybeeXmltvid";
+                            $filterXmltvid = $honeybeeXmltvid;
                         }
+                        $channel{xmltvid_old} = $filterXmltvid;
+                        $channel{xmltvid_new} = $honeybeeXmltvid;
                         $channel{xmltvid} = $filterXmltvid;
-                    } else {
-                        $channel{xmltvid} = $honeybeeXmltvid;
                     }
                     say "Channel = " . Dumper(\%channel) if $verbose;
                     push @channels, \%channel;
@@ -315,7 +328,8 @@ sub loopAllChannels
     {
         if ($sluggrep eq "" || $c->{slug} =~ /$sluggrep/)
         {
-            handleChannel($c->{slug}, $c->{xmltvid});
+            deleteOld($c->{xmltvid});
+            handleChannel($c->{slug}, $c->{xmltvid}, $c->{xmltvid_old});
             checkLogo($c->{xmltvid}, $c->{svg});
             $channelcount++;
             $progress->update ($channelcount);
@@ -330,7 +344,7 @@ sub loopAllChannels
 
 sub handleChannel
 {
-    my($channel_slug, $xmltvid) = @_;
+    my($channel_slug, $xmltvid, $xmltvid_old) = @_;
 
     my $dt = DateTime->now;
 
@@ -393,6 +407,27 @@ sub handleChannel
         
                         my $category = $p->{content}->{type};
         
+                        # year
+                        my $year = 0;
+                        if ($category eq "movie")
+                        {
+                            my $released = $p->{content}->{$category}->{released};
+                            if (defined $released && $released =~ /(\d\d\d\d)-\d\d-\d\d/)
+                            {
+                                $year = $1;
+                            }
+                        } elsif ($category eq "series") {
+                            my $aired = $p->{episode}->{aired};
+                            if (defined $aired && $aired =~ /(\d\d\d\d)-\d\d-\d\d/)
+                            {
+                                $year = $1;
+                            }
+                        }
+                        if ($year != 0)
+                        {
+                            $oneoutput{'year'} = $year;
+                        }
+        
                         # poster
                         my $poster = $p->{content}->{$category}->{images}->{fanart}->{original};
                         if (defined $poster && $poster ne '')
@@ -448,10 +483,10 @@ sub handleChannel
                                 $finalcat = "Kultur";
                             } elsif (checkGenres(["Animals", "Nature", "Home and Garden"], \@$genres)) {
                                 $finalcat = "Natur";
-                            } elsif (checkGenres(["Comedy", "Drama"], \@$genres)) {
-                                $finalcat = "Serier";
                             } elsif (checkGenres(["History", "Biography", "Documentary"], \@$genres)) {
                                 $finalcat = "Dokumentar";
+                            } elsif (checkGenres(["Comedy", "Drama"], \@$genres)) {
+                                $finalcat = "Serier";
                             } else {
                             }
                         } elsif ($category eq "sport") {
@@ -523,7 +558,7 @@ sub handleChannel
         
                         push @pout, \%oneoutput;
         #                     say $oneoutput{'title'} . ": " . $category . " " . Dumper(\$p->{series}->{genres}) . "=>" . $finalcat;
-        #                    say Dumper(\%oneoutput);
+                        say Dumper(\%oneoutput) if $verbose;
                     }
                     my %l1struct;
                     my %l2struct;
@@ -546,26 +581,11 @@ sub handleChannel
                         system("rm $zippedfullpath");
                     }
                     system("gzip $outputfullpath");
-                    
-#                    if (! -e $jsonfullpath || compare($outputfullpath, $jsonfullpath))
-#                    {
-#                        if (! -e $jsonfullpath)
-#                        {
-#                            say "$jsonfilename did not exist";
-#                        } else {
-#                            say "$jsonfilename was different";
-#                            if ($showdiff)
-#                            {
-#                                system("ksdiff -w $outputfullpath $jsonfullpath");
-#                            }
-#                            system("mv -f $jsonfullpath prevjson/");
-#                            system("ksdiff $outputfullpath prevjson/$jsonfilename");
-#                        }
-#                        system("cp -a $outputfullpath json/");
-#                    }
-#                    if (! -e $zippedfullpath)
-#                    {
-#                    }
+                    if (defined $xmltvid_old)
+                    {
+                        my $jsonfilename_old = $xmltvid_old . "_" . $dt->ymd . ".js";                    
+                        system("cp $zippedfullpath zipped_old/$jsonfilename_old" . ".gz");
+                    }
                 } else {
                     setState($xmltvid, $dt->ymd, "0 programs");
                 }
@@ -735,4 +755,32 @@ sub syncLogos
 {
     say "Sync logos with S3";
     system("s3cmd sync logos/png/ s3://easytv.logos --delete-removed --acl-public");
+}
+
+sub deleteOld
+{
+    my ($xmltvid) = @_;
+
+    my $dt = DateTime->now;
+    $dt->subtract( days => 1 );
+
+    for (my $i = 1; $i < 5; $i++)
+    {
+        my $date = $dt->ymd;
+        my $basefile = $xmltvid . "_" . $date . ".js";
+        deleteIfExists("originals/$basefile");
+        deleteIfExists("zipped/$basefile.gz");
+        deleteIfExists("zipped_old/$basefile.gz");
+        $dt->subtract( days => 1 );
+    }
+}
+
+sub deleteIfExists
+{
+    my ($path) = @_;
+    
+    if (-e $path)
+    {
+        system("rm $path");
+    }
 }
