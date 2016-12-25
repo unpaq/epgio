@@ -176,8 +176,9 @@ sub syncFilesToS3
     say "Syncing new...";
     system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped/ s3://easytv.epg --delete-removed --acl-public");
     say "Syncing old...";
-#    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped_old/ s3://tvguideplus --acl-public");
-    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped/ s3://tvguideplus --delete-removed --acl-public");
+#    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped_old/ s3://easytv.epg --acl-public");
+    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped_old/ s3://tvguideplus --delete-removed --acl-public");
+#    system("s3cmd -m application/json --add-header='Content-Encoding: gzip' sync zipped/ s3://tvguideplus --delete-removed --acl-public");
 }
 
 sub getChannelFilter
@@ -200,11 +201,15 @@ sub getChannelFilter
         } elsif (/^(?!#)(.*) live=(.*)/) {
             $slug = $1;
             $live = $2;
+            $xmltvid = "old";
         } elsif (/^(?!#)(.*) (.*)/) {
             $slug = $1;
             $xmltvid = $2;
         } elsif (/^(?!#)\!(.*)/) {
             $slug = $1;
+        } elsif (/^(?!#)(.*)/) {
+            $slug = $1;
+            $xmltvid = "old";
         }
 
         if ($slug ne "")
@@ -286,8 +291,6 @@ sub getChannelList
                             $filterXmltvid = $honeybeeXmltvid;
                         }
                         $channel{xmltvid_old} = $filterXmltvid;
-                        $channel{xmltvid_new} = $honeybeeXmltvid;
-                        $channel{xmltvid} = $filterXmltvid;
                     }
                     say "Channel = " . Dumper(\%channel) if $verbose;
                     push @channels, \%channel;
