@@ -185,7 +185,7 @@ sub getChannelFilter
 {
     my %filters;
     
-    open(my $in, "<", "channels.conf") or die "Can't open channels.conf: $!";
+    open(my $in, "<:encoding(UTF-8)", "channels.conf") or die "Can't open channels.conf: $!";
     while (<$in>)
     {
         my $slug = "";
@@ -193,8 +193,10 @@ sub getChannelFilter
         my $name = "";
         my $live = "";
                 
-        if (/^(?!#)(.*) (.*) (.*)/)
-        {
+        if (/^(?!#)(.*) name='(.*)'/) {
+            $slug = $1;
+            $name = $2;
+        } elsif (/^(?!#)(.*) (.*) (.*)/) {
             $slug = $1;
             $xmltvid = $2;
             $live = $3;
@@ -300,6 +302,9 @@ sub getChannelList
                 {
                     # do nothing - channel should be skipped
                     say "Skipped $slug because no countries or svg" if $verbose;
+                } elsif ($c->{"active"} ne "true") {
+                    # do nothing - channel should be skipped
+                    say "Skipped $slug because it is not active anymore" if $verbose;                    
                 } elsif (!$onlylisted) {
                     $channel{slug} = $slug;
                     $channel{countries} = $countries;
