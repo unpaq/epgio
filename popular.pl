@@ -16,22 +16,20 @@ my $ua = LWP::UserAgent->new();
 my %programs;
 my %programs2;
 
-open(my $api_key_file, "<", "flurryapikey.conf") or die "Can't open flurryapikey.conf: $!";
-my $api_key = <$api_key_file>;
-chomp($api_key);
-close $api_key_file;
-open($api_key_file, "<", "flurryapicode.conf") or die "Can't open flurryapicode.conf: $!";
-my $api_access_code = <$api_key_file>;
-chomp($api_access_code);
-close $api_key_file;
+open(my $api_token_file, "<", "flurryapitoken.conf") or die "Can't open flurryapitoken.conf: $!";
+my $api_token = <$api_token_file>;
+chomp($api_token);
+close $api_token_file;
 
 my $dt = DateTime->now;
 my $enddate = $dt->ymd;
 $dt = $dt->subtract(days => 5);
 my $startdate = $dt->ymd;
-my $url = "http://api.flurry.com/eventMetrics/Event?apiAccessCode=$api_access_code&apiKey=$api_key&startDate=$startdate&endDate=$enddate&eventName=Favorite%20added%20new";
+#my $url = "http://api.flurry.com/eventMetrics/Event?apiAccessCode=$api_access_code&apiKey=$api_key&startDate=$startdate&endDate=$enddate&eventName=Favorite%20added%20new";
+my $url = "https://api-metrics.flurry.com/public/v1/data/eventParams/day/event;show=all/event/paramName/paramValue?metrics=count&filters=app|name-in[Easy TV 2],event|name-in[Favorite added new]&dateTime=$startdate/$enddate";
 say "URL = $url";
 my $req = new HTTP::Request GET => $url;
+$req->header( "Authorization" => "Bearer " .  $api_token);
 my $res = $ua->request($req);
 
 if ($res->is_success)
@@ -39,26 +37,19 @@ if ($res->is_success)
     my $content = $res->content;
     my $json = decode_json( $content );
 #    say Dumper($json);
-    my $eventparams =  $json->{parameters}->{key};
+    my $eventparams =  $json->{"rows"};
 #    my $events =  $json->{parameters}->{key}->{value};
 
     foreach my $eventparname (@$eventparams)
     {
-    my $eventparam = $eventparname->{'@name'};
-    if ($eventparam eq "Channel: Title")
-    {
-    my $events = $eventparname->{value};
-    foreach my $event (@$events)
-    {
-#        say Dumper($event);
-#        say $event;
-        my $count = $event->{'@totalCount'};
-        my $name = $event->{'@name'};
-#        say $count . ": " . $name;
+        my $eventparam = $eventparname->{'paramName|name'};
+        if ($eventparam eq "Channel: Title")
+        {
+            my $name = $eventparname->{'paramValue|name'};
+            my $count = $eventparname->{'count'};
 
-        $programs{$name} += $count;
-    }
-    }
+            $programs{$name} += $count;
+        }
     }
 }
 

@@ -259,6 +259,7 @@ sub getChannelList
             my $honeybeeName = $channel_input->{name};
             my $honeybeeXmltvid = $channel_input->{xmltvid};
             my $svg = $channel_input->{logos}->{svg};
+            $svg = "http://chanlogos.xmltv.se/svg/max.tv3.dk.svg" if ($honeybeeXmltvid eq "max.tv3.dk");
 
             my $filter = $filters->{$slug};
             if (defined $filter) {
@@ -302,9 +303,9 @@ sub getChannelList
                 {
                     # do nothing - channel should be skipped
                     say "Skipped $slug because no countries or svg" if $verbose;
-                } elsif ($c->{"active"} ne "true") {
+#                } elsif ($c->{"active"} ne "true") {
                     # do nothing - channel should be skipped
-                    say "Skipped $slug because it is not active anymore" if $verbose;                    
+#                    say "Skipped $slug because it is not active anymore" if $verbose;                    
                 } elsif (!$onlylisted) {
                     $channel{slug} = $slug;
                     $channel{countries} = $countries;
@@ -319,7 +320,7 @@ sub getChannelList
         print STDERR $res->status_line, "\n";
     }
     
-    say Dumper(\@channels) if $verbose;
+#    say Dumper(\@channels) if $verbose;
     return \@channels;
 }
 
@@ -441,6 +442,12 @@ sub handleChannel
                         if (defined $poster && $poster ne '')
                         {
                             $oneoutput{'poster'} = $poster;
+                        }
+                        # poster variable size
+                        my $poster_version = $p->{content}->{$category}->{images}->{fanart}->{version};
+                        if (defined $poster_version && $poster_version ne '')
+                        {
+                            $oneoutput{'poster_version'} = $poster_version;
                         }
         
                         # imdb_id
